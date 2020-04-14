@@ -1,10 +1,18 @@
+import 'dart:io';
+
 import 'package:division/division.dart';
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
+// import 'package:google_sign_in/google_sign_in.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:states_rebuilder/states_rebuilder.dart';
+import 'package:tawasool/FCM.dart';
 import 'package:tawasool/core/api_utils.dart';
 import 'package:tawasool/core/utils.dart';
+import 'package:tawasool/data/models/all_sections_model.dart';
 import 'package:tawasool/data/models/credentials_model.dart';
 import 'package:tawasool/presentation/store/auth_store.dart';
+import 'package:tawasool/presentation/store/occasions_store.dart';
 import 'package:tawasool/presentation/widgets/error_widget.dart';
 import 'package:tawasool/presentation/widgets/tet_field_with_title.dart';
 import 'package:tawasool/presentation/widgets/waiting_widget.dart';
@@ -19,114 +27,190 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   GlobalKey<FormState> _formKey = GlobalKey();
+  // GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
+  // GoogleSignInAccount _googleSignInAccount;
+
+  FirebaseNotifications fcmToken;
+  String deviceToken;
+
+  getTokenCallback(String token) {
+    deviceToken = token;
+  }
+
   @override
   void didChangeDependencies() {
     // TODO: implement didChangeDependencies
     final reactiveModel = Injector.getAsReactive<AuthStore>();
-    reactiveModel.resetToIdle();
+    if (reactiveModel.hasError) reactiveModel.resetToIdle();
     super.didChangeDependencies();
   }
 
+  // googleLogin() async {
+  //   _googleSignInAccount = await _googleSignIn.signIn();
+  // }
+
+  // googleLogOut() async {
+  //   _googleSignInAccount = await _googleSignIn.signOut();
+  // }
+
+  // printAnything() async {
+  //   print((await _googleSignInAccount.authentication).idToken);
+  // }
+
+  final reactiveModel = Injector.getAsReactive<OccasionsStore>();
+  @override
+  void initState() {
+    // TODO: implement initState
+    fcmToken = FirebaseNotifications.getToken(getTokenCallback);
+    if (reactiveModel.state.allSectionsModel == null) {
+      reactiveModel.setState((state) => state.getAllSections());
+    }
+    super.initState();
+  }
+
+  ScrollController _scrollController = ScrollController();
+  double yOffset = 0.4;
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final mq = MediaQuery.of(context);
     return SafeArea(
       child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        body: Stack(
-          children: <Widget>[
-            Align(
-              alignment: FractionalOffset(0, 0.05),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[],
-              ),
-            ),
-            Align(
-                alignment: FractionalOffset(0.5, 0.05),
-                child: Form(
-                  key: _formKey,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      // mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      // crossAxisAlignment: CrossAxisAlignment.center,
-                      children: <Widget>[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: <Widget>[
-                            Txt('تخطي       ',
-                                style: TxtStyle()..textColor(Colors.red),
-                                gesture: Gestures()
-                                  ..onTap(() => Router.navigator
-                                      .pushReplacementNamed(Router.mainPage))),
-                            Image.asset('assets/icons/logo.png'),
-                            Txt('${isCreate ? "تسجيل دخول" : "تسجيل جديد"}',
-                                gesture: Gestures()
-                                  ..onTap(() {
-                                    isCreate = !isCreate;
-                                    setState(() {});
-                                  }),
-                                style: TxtStyle()..textColor(ColorsD.main)),
-                          ],
-                        ),
-                        Txt(
-                          'المؤسسة العامة للتدريب التقنى والمهنى\nالكلية التقنية بأبها',
-                          style: TxtStyle()
-                            ..alignmentContent.topCenter()
-                            ..textAlign.center(),
-                        ),
-                        Txt(
-                          'تواصل',
-                          style: TxtStyle()..textColor(ColorsD.main),
-                        ),
-                        Visibility(
-                          visible: isCreate,
-                          child: TetFieldWithTitle(
-                            title: 'الإسم بالكامل',
-                            inputType: TextInputType.text,
-                            textEditingController: nameCtrler,
-                            validator: nameValidator,
+        appBar: PreferredSize(
+          child: appBarWidget(mq),
+          preferredSize: Size.fromHeight(size.height / 4),
+        ),
+        resizeToAvoidBottomInset: true,
+        resizeToAvoidBottomPadding: true,
+        body: Form(
+          key: _formKey,
+          child: Padding(
+            padding: const EdgeInsets.all(0.0),
+            child: Stack(
+              children: <Widget>[
+                Align(
+                  alignment: FractionalOffset(0, yOffset),
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Visibility(
+                              visible: isCreate,
+                              child: Container(
+                                height: size.height / 8,
+                                width: size.height / 8,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: <Widget>[
+                                    DottedBorder(
+                                      strokeCap: StrokeCap.butt,
+                                      strokeWidth: 3,
+                                      color: ColorsD.main,
+                                      child: Container(
+                                        height: size.height / 8,
+                                        width: size.height / 8,
+                                        child: CircleAvatar(
+                                          backgroundColor: Colors.transparent,
+                                          backgroundImage: _image != null
+                                              ? FileImage(_image)
+                                              : AssetImage(
+                                                  'assets/icons/male.png'),
+                                        ),
+                                      ),
+                                      borderType: BorderType.Circle,
+                                    ),
+                                    Align(
+                                        alignment: FractionalOffset(1.5, 1.2),
+                                        child: InkWell(
+                                            child: IconButton(
+                                          onPressed: getProfilePicture,
+                                          icon: Icon(Icons.camera_enhance),
+                                          color: ColorsD.main,
+                                          iconSize: 30,
+                                          padding: EdgeInsets.zero,
+                                        ))),
+                                  ],
+                                ),
+                              )),
+                          Visibility(
+                            visible: isCreate,
+                            child: TetFieldWithTitle(
+                              title: 'الإسم بالكامل',
+                              inputType: TextInputType.text,
+                              textEditingController: nameCtrler,
+                              validator: nameValidator,
+                            ),
                           ),
-                        ),
-                        TetFieldWithTitle(
-                          title: 'الرقم الوظيفي',
-                          inputType: TextInputType.number,
-                          textEditingController: ssidCtrler,
-                          validator: ssidValidator,
-                        ),
-                        TetFieldWithTitle(
-                          title: 'كلمة المرور',
-                          inputType: TextInputType.text,
-                          textEditingController: passwordCtrler,
-                          validator: passwordValidator,
-                        ),
-                        Visibility(
-                          visible: isCreate,
-                          child: TetFieldWithTitle(
-                            title: 'تأكيد كلمة المرور',
-                            inputType: TextInputType.text,
-                            textEditingController: confirmCtrler,
-                            validator: confirmPasswordValidator,
+                          Visibility(
+                            visible: isCreate,
+                            child: TetFieldWithTitle(
+                              
+                              title: 'رقم التليفون',
+                              icon: Container(
+                                  width: size.width / 7,
+                                  child: Txt('+966',
+                                      style: TxtStyle()
+                                        ..textDirection(TextDirection.ltr)
+                                        ..alignment.centerRight()
+                                        ..width(size.width / 9))),
+                              inputType: TextInputType.text,
+                              textEditingController: phoneCtrler,
+                              validator: nameValidator,
+                            ),
                           ),
-                        ),
-                        loginBtn(),
-                        SizedBox(height: 10),
-                        orBar(),
-                        loginWithGoogle(),
-                        // noAccount()
-                      ],
+                          TetFieldWithTitle(
+                            title: 'الرقم الوظيفي',
+                            inputType: TextInputType.number,
+                            textEditingController: ssidCtrler,
+                            validator: ssidValidator,
+                          ),
+                          TetFieldWithTitle(
+                            title: 'كلمة المرور',
+                            inputType: TextInputType.text,
+                            isPassword: true,
+                            textEditingController: passwordCtrler,
+                            validator: passwordValidator,
+                          ),
+                          Visibility(
+                            visible: isCreate,
+                            child: TetFieldWithTitle(
+                              title: 'تأكيد كلمة المرور',
+                              isPassword: true,
+                              inputType: TextInputType.text,
+                              textEditingController: confirmCtrler,
+                              validator: confirmPasswordValidator,
+                            ),
+                          ),
+                          Visibility(
+                            visible: isCreate,
+                            child: Container(
+                              height: 100,
+                              child: CustomBorderedWidget(
+                                dropDownBtn: sectionDropDown(),
+                                width: size.width * 0.7,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 25),
+                          loginBtn(),
+                        ],
+                      ),
                     ),
                   ),
-                )),
-          ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   TextEditingController ssidCtrler = TextEditingController(text: '');
+  TextEditingController phoneCtrler = TextEditingController(text: '');
   TextEditingController passwordCtrler = TextEditingController(text: '');
   TextEditingController nameCtrler = TextEditingController(text: '');
   TextEditingController confirmCtrler = TextEditingController(text: '');
@@ -172,6 +256,50 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Widget appBarWidget(MediaQueryData mq) {
+    // final mq = MediaQuery.of(context);
+    return Visibility(
+      visible: mq.viewInsets == EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: <Widget>[
+                Txt('تخطي       ',
+                    style: TxtStyle()..textColor(Colors.red),
+                    gesture: Gestures()
+                      ..onTap(() => Router.navigator
+                          .pushReplacementNamed(Router.mainPage))),
+                Image.asset('assets/icons/logo.png'),
+                Txt('${isCreate ? "تسجيل دخول" : "تسجيل جديد"}',
+                    gesture: Gestures()
+                      ..onTap(() {
+                        isCreate = !isCreate;
+                        yOffset = 1.8 - yOffset;
+                        setState(() {});
+                      }),
+                    style: TxtStyle()..textColor(ColorsD.main)),
+              ],
+            ),
+            Txt(
+              'المؤسسة العامة للتدريب التقنى والمهنى\nالكلية التقنية بأبها',
+              style: TxtStyle()
+                ..alignmentContent.topCenter()
+                ..textAlign.center(),
+            ),
+            Txt(
+              'تواصل',
+              style: TxtStyle()..textColor(ColorsD.main),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   TxtStyle defaultStyle = TxtStyle()
     ..margin(all: 12)
     ..textColor(Colors.white)
@@ -183,7 +311,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget loginBtn() {
     final size = MediaQuery.of(context).size;
     Widget onIdle = Txt(
-      '${isCreate ? "انشاء حساب" : "تسجيل جديد"}',
+      '${isCreate ? "انشاء حساب" : "تسجيل دخول"}',
       gesture: Gestures()..onTap(loginOnTap),
       style: defaultStyle.clone()
         ..width(size.width * 0.7)
@@ -194,12 +322,14 @@ class _LoginPageState extends State<LoginPage> {
       onIdle: () => onIdle,
       onWaiting: () => WaitingWidget(),
       onError: (e) {
-        Future.delayed(Duration(milliseconds: 1), ()=>AlertDialogs.failed(context: context, content: e)).then((_){});
-       return OnErrorWidget(e);
+        Future.delayed(
+            Duration(milliseconds: 1),
+            () => AlertDialogs.failed(
+                context: context, content: e.toString())).then((_) {});
+        return OnErrorWidget(e);
       },
       onData: (data) {
-        Router.navigator.pushReplacementNamed(Router.mainPage);
-        return Container();
+        return onIdle;
       },
     );
   }
@@ -208,6 +338,7 @@ class _LoginPageState extends State<LoginPage> {
     final size = MediaQuery.of(context).size;
     return Txt(
       'Sign in with Google',
+      // gesture: Gestures()..onTap(googleLogin),
       style: defaultStyle.clone()
         ..width(size.width * 0.7)
         ..height(size.height / 20)
@@ -215,26 +346,126 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void loginOnTap() async {
-    final reactiveModel = Injector.getAsReactive<AuthStore>();
+  File _image;
+  getProfilePicture() async {
+    print('kjhgcfvhjklv');
+    _image = await showModalBottomSheet(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16), topRight: Radius.circular(16))),
+        context: context,
+        builder: (context) => ClipRRect(
+              borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  Txt('اختر مصدر الصورة',
+                      style: TxtStyle()
+                        ..textColor(Colors.white)
+                        ..background.color(ColorsD.main)
+                        ..height(40)
+                        ..alignment.center()
+                        ..alignmentContent.center()
+                        ..fontSize(16)),
+                  GestureDetector(
+                    onTap: () async {
+                      Navigator.pop(
+                          context,
+                          await ImagePicker.pickImage(
+                              source: ImageSource.camera));
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: <Widget>[
+                          Txt('الكاميرا'),
+                          SizedBox(
+                            width: 12,
+                          ),
+                          Icon(
+                            Icons.camera_enhance,
+                            color: ColorsD.main,
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () async {
+                      Navigator.pop(
+                          context,
+                          await ImagePicker.pickImage(
+                              source: ImageSource.gallery));
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: <Widget>[
+                          Txt('الاستوديو'),
+                          SizedBox(
+                            width: 12,
+                          ),
+                          Icon(
+                            Icons.photo_library,
+                            color: ColorsD.main,
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ));
+    setState(() {});
+  }
+
+  Future loginOnTap() async {
+    final authReactiveModel = Injector.getAsReactive<AuthStore>();
     if (isCreate)
-      reactiveModel.setState((state) => state.register(
-            Credentials(
-              codeJob: '${ssidCtrler.text}',
-              password: '${passwordCtrler.text}',
-              confirmPassword: '${confirmCtrler.text}',
-              deviceToken: 'sss',
-              name: '${nameCtrler.text}',
-              phone: '${010}',
-            ),
-          ));
+      {
+        if(_image == null )
+        {
+          AlertDialogs.failed(content: 'من فضلك أدخل صورة شخصية',context: context);
+          return null;
+        }
+        return authReactiveModel.setState((state) => state
+              .register(
+                  Credentials(
+                      codeJob: '${ssidCtrler.text}',
+                      password: '${passwordCtrler.text}',
+                      confirmPassword: '${confirmCtrler.text}',
+                      deviceToken: '$deviceToken',
+                      name: '${nameCtrler.text}',
+                      phone: '+966${phoneCtrler.text}',
+                      sectionId:
+                          '${reactiveModel.state.allSectionsModel.data.firstWhere((section) => section.name == selectedSection).id}'),
+                  _image.path)
+              .then((d) {
+            if (d != null) {
+              isCreate
+                  ? Router.navigator.pushNamed(Router.verifyUserScreen)
+                  : Router.navigator.pushReplacementNamed(Router.mainPage);
+            }
+          }));}
     else
-      reactiveModel.setState((state) => state.login(
+      return authReactiveModel.setState((state) => state
+              .login(
             Credentials(
-              codeJob: '${ssidCtrler.text}',
-              password: '${passwordCtrler.text}',
-            ),
-          ));
+                codeJob: '${ssidCtrler.text}',
+                password: '${passwordCtrler.text}',
+                deviceToken: deviceToken),
+          )
+              .then((d) {
+            if (d != null) {
+              isCreate
+                  ? Router.navigator.pushNamed(Router.verifyUserScreen)
+                  : Router.navigator.pushReplacementNamed(Router.mainPage);
+            }
+          }));
   }
 
   Widget orBar() {
@@ -259,19 +490,19 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   String passwordValidator(String text) {
-    // if (text.length < 6) return 'Too Short Of a Text';
+    if (text.length < 6) return 'Too Short Of a Text';
   }
 
   String confirmPasswordValidator(String text) {
-    // if (text.length < 6) return 'Too Short Of a Text';
+    if (text.length < 6) return 'Too Short Of a Text';
   }
 
   String ssidValidator(String text) {
-    // if (text.length < 6) return 'Too Short Of a Text';
+    if (text.length < 6) return 'Too Short Of a Text';
   }
 
   String nameValidator(String text) {
-    // if (text.length < 6) return 'Too Short Of a Text';
+    if (text.length < 6) return 'Too Short Of a Text';
   }
 
   Widget noAccount() {
@@ -284,5 +515,58 @@ class _LoginPageState extends State<LoginPage> {
           text: 'انشاء حساب',
           style: TextStyle(color: ColorsD.main, fontFamily: 'Cairo')),
     ]));
+  }
+
+  Widget sectionDropDown() {
+    if (Injector.getAsReactive<OccasionsStore>().state.allSectionsModel ==
+        null) {
+      Injector.getAsReactive<OccasionsStore>()
+          .setState((state) => state.getAllSections());
+    } else
+      Injector.getAsReactive<OccasionsStore>().resetToHasData();
+    return WhenRebuilder<OccasionsStore>(
+      models: [reactiveModel],
+      onIdle: () => Container(),
+      onError: (e) => OnErrorWidget(
+          e, () => reactiveModel.setState((state) => state.getAllSections())),
+      onWaiting: () => WaitingWidget(),
+      onData: (data) => dropDownBtn(data.allSectionsModel.data),
+    );
+  }
+
+  String selectedSection;
+  Widget dropDownBtn(List<Section> allSections) {
+    return DropdownButton(
+      underline: Container(),
+      hint: Txt(
+        '--اختر قسم--',
+        style: TxtStyle()
+          ..textAlign.right()
+          ..fontFamily('Cairo'),
+      ),
+      value: selectedSection,
+      style: TextStyle(),
+      isExpanded: true,
+      onChanged: (val) {
+        setState(() {
+          selectedSection = val;
+        });
+      },
+      items: List.generate(
+        allSections.length,
+        (i) {
+          return DropdownMenuItem(
+            value: allSections[i].name,
+            child: Txt(
+              '${allSections[i].name}',
+              style: TxtStyle()
+                ..textAlign.right()
+                ..alignment.centerRight()
+                ..fontFamily('Cairo'),
+            ),
+          );
+        },
+      ),
+    );
   }
 }

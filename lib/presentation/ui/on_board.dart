@@ -1,10 +1,16 @@
 import 'package:division/division.dart';
 import 'package:flutter/material.dart';
 import 'package:states_rebuilder/states_rebuilder.dart';
+import 'package:tawasool/FCM.dart';
 import 'package:tawasool/core/utils.dart';
+import 'package:tawasool/data/models/setting_model.dart';
+import 'package:tawasool/presentation/store/auth_store.dart';
 import 'package:tawasool/presentation/store/occasions_store.dart';
 import 'package:tawasool/presentation/ui/department.dart';
 import 'package:tawasool/presentation/mainPage.dart';
+import 'package:tawasool/presentation/widgets/error_widget.dart';
+import 'package:tawasool/presentation/widgets/idle_widget.dart';
+import 'package:tawasool/presentation/widgets/waiting_widget.dart';
 import '../../router.gr.dart';
 import 'auth/login.dart';
 
@@ -13,14 +19,18 @@ class OnBoard extends StatefulWidget {
   _OnBoardState createState() => _OnBoardState();
 }
 
+FirebaseNotifications fcmHandler;
+
 class _OnBoardState extends State<OnBoard> with SingleTickerProviderStateMixin {
   int currentIndex = 0;
   TabController _tabController;
+
   @override
   void initState() {
+    getSettings();
     _tabController = TabController(length: 3, vsync: this, initialIndex: 2);
     final reactiveModel = Injector.getAsReactive<OccasionsStore>();
-    reactiveModel.setState((state) => state.getAllOccasions());
+    // reactiveModel.setState((state) => state.getAllOccasions());
     // TODO: implement initState
     super.initState();
   }
@@ -37,16 +47,33 @@ class _OnBoardState extends State<OnBoard> with SingleTickerProviderStateMixin {
             child: Image.asset('assets/icons/logo.png'),
           ),
           Align(
-            alignment: FractionalOffset(0.5, 0.41),
-            child: Txt(
-              'المؤسسة العامة للتدريب التقنى والمهنى\nالكلية التقنية بأبها',
-              style: TxtStyle()
-                ..width(size.width * .7)
-                ..textAlign.center(),
+            alignment: FractionalOffset(0.5, 0.42),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Txt(
+                  'المؤسسة العامة للتدريب التقنى والمهنى\nالكلية التقنية بأبها',
+                  style: TxtStyle()
+                    ..width(size.width * .7)
+                    ..textAlign.center(),
+                ),
+                Txt(
+                        'تواصل',
+                        style: TxtStyle()
+                          ..fontWeight(FontWeight.bold)
+                          ..fontFamily('Kufi')
+                          ..fontSize(26)
+                          ..textColor(ColorsD.main)
+                          ..alignment.center()
+                          ..alignmentContent.center()
+                          ..textAlign.center(),
+                      ),
+              ],
             ),
           ),
           nextBtn(),
           previousBtn(),
+          skipBtn(),
           Align(
             alignment: FractionalOffset(0.5, 0.72),
             child: Container(
@@ -59,7 +86,12 @@ class _OnBoardState extends State<OnBoard> with SingleTickerProviderStateMixin {
                 labelPadding: EdgeInsets.zero,
                 onTap: (s) {
                   print(s);
-                  currentIndex = 0;
+                  setState(() {
+                    currentIndex = _tabController.length - s - 1;
+                    currentIndex == 2
+                        ? nextTitle = 'إبدأ الآن'
+                        : nextTitle = 'التالي';
+                  });
                 },
                 indicator: BoxDecoration(
                     color: ColorsD.main,
@@ -83,43 +115,8 @@ class _OnBoardState extends State<OnBoard> with SingleTickerProviderStateMixin {
             child: Container(
               height: 100,
               child: Align(
-                // height: 100,
-
-                child: TabBarView(controller: _tabController, children: [
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: <Widget>[
-                      Txt(
-                        'هذا النص قد يكون مثالا لنص',
-                        style: TxtStyle()
-                          ..fontWeight(FontWeight.bold)
-                          ..alignment.center()
-                          ..alignmentContent.center(),
-                      ),
-                      Txt(
-                        'هذا النص وصف للتطبيق 1',
-                        style: TxtStyle()
-                          ..margin(horizontal: 10)
-                          ..alignment.center()
-                          ..textAlign.center()
-                          ..alignmentContent.center(),
-                      ),
-                    ],
-                  ),
-                  Txt(
-                    'هذا النص وصف للتطبيق 2',
-                    style: TxtStyle()
-                      ..alignment.center()
-                      ..alignmentContent.center(),
-                  ),
-                  Txt(
-                    'هذا النص وصف للتطبيق 3',
-                    style: TxtStyle()
-                      ..alignment.center()
-                      ..alignmentContent.center(),
-                  ),
-                ]),
-              ),
+                  // height: 100,
+                  child: buildAboutAppWidgets()),
             ),
           ),
         ],
@@ -127,21 +124,67 @@ class _OnBoardState extends State<OnBoard> with SingleTickerProviderStateMixin {
     );
   }
 
+  getSettings() => Injector.getAsReactive<AuthStore>()
+      .setState((state) => state.getSettings());
+  Widget aboutAppWidgets(SettingInfo data) {
+    return TabBarView(
+        controller: _tabController,
+        children: List.generate(
+            3,
+            (index) => Txt(
+                  '${data.toJson()['splash–${index + 1}']}',
+                  style: TxtStyle()
+                    ..alignment.center()
+                    ..textAlign.center()
+                    ..alignmentContent.center(),
+                )));
+  }
+
+  Widget buildAboutAppWidgets() {
+    final rm = Injector.getAsReactive<AuthStore>();
+    return WhenRebuilder<AuthStore>(
+        onIdle: () => IdleWidget(),
+        onWaiting: () => WaitingWidget(),
+        onError: (e) => OnErrorWidget(e, getSettings),
+        onData: (data) => aboutAppWidgets(data.settingModel.data.first),
+        models: [rm]);
+  }
+
+  String nextTitle = 'التالي';
   Widget nextBtn() {
+    final isAuth = Injector.getAsReactive<AuthStore>().state.isAuth;
     return Align(
       alignment: FractionalOffset(0.08, 0.98),
       child: Txt(
-        'التالي',
+        nextTitle,
         gesture: Gestures()
           ..onTap(() {
             // currentIndex = 0;
             currentIndex++;
+            currentIndex == 2 ? nextTitle = 'إبدأ الآن' : nextTitle = 'التالي';
             currentIndex <= 2
                 ? _tabController.animateTo(2 - currentIndex)
-                : Router.navigator.pushReplacementNamed(Router.loginPage);
+                : Router.navigator.pushReplacementNamed(
+                    isAuth ? Router.mainPage : Router.loginPage);
             setState(() {});
           }),
         style: TxtStyle()..textColor(ColorsD.main),
+      ),
+    );
+  }
+
+  Widget skipBtn() {
+    final isAuth = Injector.getAsReactive<AuthStore>().state.isAuth;
+    return Align(
+      alignment: FractionalOffset(0.08, 0.05),
+      child: Txt(
+        'تخطي',
+        style: TxtStyle()
+          ..textColor(ColorsD.main)
+          ..textDirection(TextDirection.rtl),
+        gesture: Gestures()
+          ..onTap(() => Router.navigator.pushReplacementNamed(
+              isAuth ? Router.mainPage : Router.loginPage)),
       ),
     );
   }
@@ -158,6 +201,10 @@ class _OnBoardState extends State<OnBoard> with SingleTickerProviderStateMixin {
             ..onTap(() {
               // currentIndex = 0;
               currentIndex--;
+              currentIndex == 2
+                  ? nextTitle = 'إبدأ الآن'
+                  : nextTitle = 'التالي';
+
               currentIndex >= 0
                   ? _tabController.animateTo(2 - currentIndex)
                   : Navigator.push(

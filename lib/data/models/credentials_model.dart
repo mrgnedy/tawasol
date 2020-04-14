@@ -26,8 +26,12 @@ class Credentials {
   String password;
   String confirmPassword;
   int id;
+  String sectionId;
   String name;
+  int type;
+  int code;
   String deviceToken;
+  String image;
 
   Credentials({
     this.apiToken,
@@ -37,7 +41,11 @@ class Credentials {
     this.name,
     this.deviceToken,
     this.password,
+    this.type,
+    this.code,
     this.confirmPassword,
+    this.sectionId,
+    this.image
   });
 
   Credentials.fromJson(Map<String, dynamic> json) {
@@ -47,14 +55,24 @@ class Credentials {
     id = json['id'];
     name = json['name'];
     deviceToken = json['device_token'];
+    type = json['type'];
+    sectionId = json['section_id'].toString();
+    code = json['code'];
+    image = json['image'];
+    
+    
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['image'] = this.image;
     data['api_token'] = this.apiToken;
     data['code_job'] = this.codeJob;
     data['phone'] = this.phone;
     data['id'] = this.id;
+    data['section_id'] = this.sectionId;
+    data['type'] = this.type;
+    data['code'] = this.code;
     data['name'] = this.name;
     data['password'] = this.password;
     data['confirmpass'] = this.confirmPassword;
@@ -73,17 +91,17 @@ class Credentials {
     // data['confirmpass'] = this.confirmPassword;
     return data;
   }
-  Map<String, dynamic> register() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
+  Map<String, String> register() {
+    final Map<String, String> data = new Map<String, String>();
     data['code_job'] = this.codeJob;
     data['name'] = this.name;
     data['password'] = this.password;
     data['confirmpass'] = this.confirmPassword;
     data['device_token'] = this.deviceToken?? ' ';
     data['phone'] = this.phone;
-    data['section_id'] = this.id?? '1';
+    data['section_id'] = this.sectionId.toString()?? '1';
     // data['api_token'] = this.apiToken;
-    // data['id'] = this.id;
+    data['id'] = this.id.toString();
     return data;
   }
 }

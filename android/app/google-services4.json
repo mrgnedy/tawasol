@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "148030534114",
+    "firebase_url": "https://tawasool-95d42.firebaseio.com",
+    "project_id": "tawasool-95d42",
+    "storage_bucket": "tawasool-95d42.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:148030534114:android:bd42ba087f62e2843289bb",
+        "android_client_info": {
+          "package_name": "com.skinnyg.tawasool"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "148030534114-spopra0lv1a5mdnkkbsmpv4a3iigas29.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0Z3j8EeNwRQH4L9VLf_ckUxX46UrRN-U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "148030534114-spopra0lv1a5mdnkkbsmpv4a3iigas29.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

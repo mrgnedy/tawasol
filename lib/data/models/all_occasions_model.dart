@@ -11,6 +11,7 @@ class AllOccasionsModel {
       json['data'].forEach((v) {
         data.add(new Occasion.fromJson(v));
       });
+      data = data.reversed.toList();
     }
   }
 
@@ -32,7 +33,10 @@ class Occasion {
   num lng;
   num lat;
   num isPublic;
+  num isAccepted;
+  int id;
   num sectionId;
+  String address;
   num userId;
   String image;
 
@@ -46,16 +50,22 @@ class Occasion {
       this.isPublic,
       this.sectionId,
       this.userId,
+      this.isAccepted,
+      this.id,
+      this.address,
       this.image});
 
   Occasion.fromJson(Map<String, dynamic> json) {
     nameOccasion = json['name_occasion'];
     nameOwner = json['name_owner'];
+    address = json['address'];
     date = json['date'];
     time = json['time'];
     lng = json['lng'];
     lat = json['lat'];
+    id = json['id'];
     isPublic = json['is_public'];
+    isAccepted = json['is_accepted'];
     sectionId = json['section_id'];
     userId = json['user_id'];
     image = json['image'];
@@ -67,8 +77,11 @@ class Occasion {
     data['name_owner'] = this.nameOwner;
     data['date'] = this.date;
     data['time'] = this.time;
+    data['address'] = this.address;
     data['lng'] = this.lng;
+    data['id'] = this.id;
     data['lat'] = this.lat;
+    data['is_accepted'] = this.isAccepted;
     data['is_public'] = this.isPublic;
     data['section_id'] = this.sectionId;
     data['user_id'] = this.userId;
